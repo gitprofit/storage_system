@@ -10,7 +10,8 @@
 -export([main/0]).
 
 main() ->
-	io:format("erlang").
+	io:format("erlang"),
+	io:format("eclipse").
 
 %% ====================================================================
 %% Internal functions

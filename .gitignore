@@ -1,0 +1,13 @@
+.eunit
+deps
+*.o
+*.beam
+*.plt
+*.app
+.idea
+*.iml
+.metadata
+erlide.log
+erlide.log.lck
+.settings
+*.dump

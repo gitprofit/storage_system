@@ -4,23 +4,23 @@
 
 -module(metadata).
 -include("shared.hrl").
--define(STORAGE_DIR, "P:\\local_ds_meta\\").
 
 %% ====================================================================
 %% API functions
 %% ====================================================================
--export([init/0,
+-export([init/1,
 		 deinit/0,
 		 dump/0,
 		 add/1,
 		 update/1,
 		 get_by_id/1,
+		 remove/1,
 		 get_by_user/1]).
 
-init() ->
+init(FileMetaLocation) ->
 	ets:new(memDb, [named_table, {keypos, #file.id}]),
 	dets:open_file(perDb, [
-						   	{file, ?STORAGE_DIR ++ atom_to_list(node()) ++ ".metadata" },
+						   	{file, FileMetaLocation },
 						  	{keypos, #file.id}
 					]),
 	dets:to_ets(perDb, memDb),
@@ -46,6 +46,10 @@ get_by_id(FileId) ->
 		[File]	-> { ok, File };
 		[]		-> { error, not_found }
 	end.
+
+remove(FileId) ->
+	ets:delete(memDb, FileId),
+	dets:delete(perDb, FileId).
 
 get_by_user(_UserId) ->
 	%% @TODO implement

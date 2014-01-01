@@ -3,30 +3,30 @@
 
 
 -module(storage_client).
+-include("shared.hrl").
 
 %% ====================================================================
 %% API functions
 %% ====================================================================
--export([add/2, list/1]).
+-export([create/2, delete/2, send_request/2]).
 
-add(Node, File) ->
-	{ storage, Node } ! { self(), add, File },
+create(Node, FileName) ->
+	send_request(Node, #request{action=create,
+								file_id=FileName,
+								user_id="usr123"}).
+
+delete(Node, FileId) ->
+	send_request(Node, #request{action=delete,
+								file_id=FileId}).
+
+send_request(Node, #request{} = Req) ->
+	{ storage, Node } ! { self(), Req },
 	receive
-		{ ok, Result } ->
-			Result;
-		{ error, Result } ->
-			Result
+		{ ok, Result } -> Result;
+		{ error, Err } -> Err
+	after 5000 ->
+			{ error, timeout }
 	end.
-
-list(Node) ->
-	{ storage, Node } ! { self(), list },
-	receive
-		{ ok, List } ->
-			List;
-		{ error, Result } ->
-			Result
-	end.
-
 
 %% ====================================================================
 %% Internal functions

@@ -1,6 +1,7 @@
 %% @author Michal
 %% @doc Data Storage Node
 
+
 -module(data_storage).
 
 %% ====================================================================
@@ -21,9 +22,9 @@ stop() ->
 
 init() ->
 	ets:new(localFiles, [named_table]),
-	loop(0).
+	loop().
 
-loop(Index) ->
+loop() ->
 	receive
 		{ _Pid, stop } ->
 			io:format("bye. luv ja.~n");
@@ -32,13 +33,13 @@ loop(Index) ->
 			Pid ! { ok,
 					ets:foldl(fun(Elem, Acc) -> [Elem | Acc] end, [], localFiles)
 				  },
-			loop(Index);
+			loop();
 		{ Pid, add, File } ->
 			io:format("new file iz ~w~n", [File]),
-			ets:insert(localFiles, {Index, File}),
+			% ets:insert(localFiles, {Index, File}),
 			Pid ! { ok, added },
-			loop(Index+1);
+			loop();
 		_Other ->
 			io:format("server got: ~w~n", [_Other]),
-			loop(Index)
+			loop()
 	end.

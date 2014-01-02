@@ -1,21 +1,22 @@
 %% @author Michal
-%% @doc Data Storage Node
+%% @doc Data Storage
 
 
--module(data_storage).
+-module(storage).
 -include("shared.hrl").
 -define(WORK_DIR, "P:\\local_ds_meta\\").
+
 %% ====================================================================
 %% API functions
 %% ====================================================================
 -export([start/0, stop/0]).
 
 start() ->
-	register(storage,
+	register(?STORAGE_PROC,
 			 spawn_link(fun init/0)).
 
 stop() ->
-	storage ! { self(), stop }.
+	?STORAGE_PROC ! { self(), stop }.
 
 %% ====================================================================
 %% Internal functions
@@ -44,11 +45,11 @@ loop() ->
 			end,
 			loop();
 		_Other ->
-			io:format("server got: ~w~n", [_Other]),
+			io:format("storage got: ~w~n", [_Other]),
 			loop()
 	end.
 
-broadcast_request(Pid, #request{} = Req) ->
+broadcast_request(_Pid, #request{} = _Req) ->
 	[].
 
 process_request(#request{action=create,

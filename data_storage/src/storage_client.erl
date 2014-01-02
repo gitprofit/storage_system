@@ -20,7 +20,7 @@ delete(Node, FileId) ->
 								file_id=FileId}).
 
 send_request(Node, #request{} = Req) ->
-	{ storage, Node } ! { self(), Req },
+	{ ?STORAGE_PROC, Node } ! { self(), Req },
 	receive
 		{ ok, Result } -> Result;
 		{ error, Err } -> Err

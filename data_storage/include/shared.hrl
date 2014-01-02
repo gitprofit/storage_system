@@ -2,6 +2,9 @@
 %% @doc Shared data structures
 
 
+-define(STORAGE_PROC, storage).
+-define(SYSTEM_PROC, system).
+
 -record(file, {
 					id,				% string (uuid)
 					name,			% string

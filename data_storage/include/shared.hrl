@@ -4,6 +4,7 @@
 
 -define(STORAGE_PROC, storage).
 -define(SYSTEM_PROC, system).
+-define(TIMEOUT, 1000).
 
 -record(file, {
 					id,				% string (uuid)

@@ -36,6 +36,10 @@ loop() ->
 		{ _Pid, stop } ->
 			io:format("bye. luv ja.~n"),
 			deinit();
+		
+		{ Pid, #request{action=create} = Req } -> % create handled separately
+			Pid ! process_request(Req);
+		
 		{ Pid, #request{} = Req } ->
 			case metadata:get_by_id(Req#request.file_id) of
 				{ ok, _ } ->
@@ -44,6 +48,7 @@ loop() ->
 					broadcast_request(Pid, Req)
 			end,
 			loop();
+		
 		_Other ->
 			io:format("storage got: ~w~n", [_Other]),
 			loop()

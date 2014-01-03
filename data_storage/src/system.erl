@@ -8,7 +8,7 @@
 %% ====================================================================
 %% API functions
 %% ====================================================================
--export([start/0, start/1, stop/0, nodes/0]).
+-export([start/0, start/1, stop/0, nodes/0, broadcast/2]).
 
 start() ->
 	register(?SYSTEM_PROC,
@@ -24,6 +24,12 @@ stop() ->
 nodes() ->
 	ets:foldl(fun({Node}, _Acc) ->
 					  io:format("~s~n", [Node]),
+					  _Acc
+			  end, [], ?NODE_TAB).
+
+broadcast(Proc, Msg) ->
+	ets:foldl(fun({Node}, _Acc) ->
+					  { Proc, Node } ! Msg,
 					  _Acc
 			  end, [], ?NODE_TAB).
 

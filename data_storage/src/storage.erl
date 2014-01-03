@@ -1,5 +1,5 @@
 %% @author Michal
-%% @doc Data Storage
+%% @doc Data Storage request processor module
 
 
 -module(storage).
@@ -45,7 +45,7 @@ loop() ->
 				{ ok, _ } ->
 					Pid ! process_request(Req);
 				{ error, not_found } ->
-					broadcast_request(Pid, Req)
+					system:broadcast(?STORAGE_PROC, { Pid, Req})
 			end,
 			loop();
 		
@@ -54,8 +54,6 @@ loop() ->
 			loop()
 	end.
 
-broadcast_request(_Pid, #request{} = _Req) ->
-	[].
 
 process_request(#request{action=create,
 						 file_id=FileId,

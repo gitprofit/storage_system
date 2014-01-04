@@ -8,15 +8,11 @@
 %% ====================================================================
 %% API functions
 %% ====================================================================
--export([start/0, start/1, stop/0, nodes/0, broadcast/2]).
+-export([start/1, stop/0, nodes/0, broadcast/2]).
 
-start() ->
+start(InitialNodes) ->
 	register(?SYSTEM_PROC,
-			 spawn_link(fun init/0)).
-
-start(InitialNode) ->
-	register(?SYSTEM_PROC,
-			 spawn_link(fun()->init(InitialNode) end)).
+			 spawn_link(fun()->init(InitialNodes) end)).
 
 stop() ->
 	?SYSTEM_PROC ! { self(), stop }.
@@ -37,13 +33,9 @@ broadcast(Proc, Msg) ->
 %% Internal functions
 %% ====================================================================
 
-init() ->
+init(InitialNodes) ->
 	ets:new(?NODE_TAB, [named_table]),
-	loop().
-
-init(InitialNode) ->
-	ets:new(?NODE_TAB, [named_table]),
-	ets:insert(?NODE_TAB, {InitialNode}),
+	ets:insert(?NODE_TAB, [{Node} || Node <- InitialNodes] ),
 	update_nodes(),
 	say_hello(),
 	loop().
@@ -91,6 +83,9 @@ loop() ->
 			io:format("nodes list served.~n"),
 			Pid ! { ok, ets:tab2list(?NODE_TAB) },
 			loop();
+		
+		{ Pid, request_storage, RequiredSpace } ->
+			ok;
 		
 		_Other ->
 			io:format("system got: ~w~n", [_Other]),

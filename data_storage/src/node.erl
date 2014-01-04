@@ -11,16 +11,17 @@
 -export([start/0, start/1, stop/0]).
 
 start() ->
-	system:start(),
-	storage:start().
+	start([node()]).
 
-start(InitialNode) ->
-	system:start(InitialNode),
+start(InitialNodes) ->
+	globals:init(),
+	system:start(InitialNodes),
 	storage:start().
 
 stop() ->
 	storage:stop(),
-	system:stop().
+	system:stop(),
+	globals:deinit().
 
 
 

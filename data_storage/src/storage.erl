@@ -42,10 +42,10 @@ loop() ->
 		
 		{ Pid, #request{} = Req } ->
 			case metadata:get_by_id(Req#request.file_id) of
-				{ ok, _ } ->
-					Pid ! process_request(Req);
 				{ error, not_found } ->
-					system:broadcast(?STORAGE_PROC, { Pid, Req})
+					system:broadcast(?STORAGE_PROC, { Pid, Req });
+				{ ok, _ } -> 
+					Pid ! process_request(Req)
 			end,
 			loop();
 		

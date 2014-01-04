@@ -8,7 +8,7 @@
 %% ====================================================================
 %% API functions
 %% ====================================================================
--export([start/1, stop/0, nodes/0, broadcast/2]).
+-export([start/1, stop/0, nodes/0, broadcast/2, pref_storage/1]).
 
 start(InitialNodes) ->
 	register(?SYSTEM_PROC,
@@ -29,11 +29,29 @@ broadcast(Proc, Msg) ->
 					  _Acc
 			  end, [], ?NODE_TAB).
 
+%% @doc Returns most preferred node capable of storing RequiredCap bytes
+pref_storage(RequiredCap) ->
+	lists:foldl(fun({Node}, {_PrefNode, PrefFill} = Acc) ->
+					  { ?SYSTEM_PROC, Node } ! { self(), request_storage, RequiredCap },
+					  receive
+						  { ok, PercentFill } ->
+							  case PercentFill < PrefFill of
+								  true -> { Node, PercentFill };
+								  _ -> Acc
+							  end;
+						  { error, _ } -> Acc
+					  after ?TIMEOUT -> Acc
+					  end
+			  end, { undefined, undefined }, [{node()} | ets:tab2list(?NODE_TAB)]).
+
 %% ====================================================================
 %% Internal functions
 %% ====================================================================
 
 init(InitialNodes) ->
+	
+	globals:set(capacity, 100*1024*1024), %% 100 MB storage
+	
 	ets:new(?NODE_TAB, [named_table]),
 	ets:insert(?NODE_TAB, [{Node} || Node <- InitialNodes] ),
 	update_nodes(),
@@ -84,8 +102,12 @@ loop() ->
 			Pid ! { ok, ets:tab2list(?NODE_TAB) },
 			loop();
 		
-		{ Pid, request_storage, RequiredSpace } ->
-			ok;
+		{ Pid, request_storage, RequiredCap } ->
+			case RequiredCap =< (globals:get(capacity)-globals:get(fill)) of
+				true -> Pid ! { ok, globals:get(fill)/globals:get(capacity) };
+				_ -> Pid ! { error, storage_full }
+			end,
+			loop();
 		
 		_Other ->
 			io:format("system got: ~w~n", [_Other]),

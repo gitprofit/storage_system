@@ -15,7 +15,8 @@
 		 update/1,
 		 get_by_id/1,
 		 remove/1,
-		 get_by_user/1]).
+		 get_by_user/1,
+		 to_list/0]).
 
 init(FileMetaLocation) ->
 	ets:new(memDb, [named_table, {keypos, #file.id}]),
@@ -55,9 +56,12 @@ get_by_user(_UserId) ->
 	%% @TODO implement
 	{ error, not_implemented }.
 
+to_list() ->
+	ets:tab2list(memDb).
+
 dump() ->
 	ets:foldl(fun(Elem, _Acc) ->
-					  Name = Elem#file.name,
+					  Name = Elem#file.v_path,
 					  Id = Elem#file.id,
 					  io:format("file ~s as ~s~n", [Name, Id]),
 					  _Acc

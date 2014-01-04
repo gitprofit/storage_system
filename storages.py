@@ -20,7 +20,7 @@ def getFullName(num):
 nodes = []
 def start(num):
 	global nodes
-
+	nodes = []
 	root = getFullName(1)
 	nodes.append(spawnNode(getName(1), root))
 

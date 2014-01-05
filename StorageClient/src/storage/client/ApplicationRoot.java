@@ -16,13 +16,13 @@ public class ApplicationRoot extends Application {
     @Override
     public void start(Stage stage) throws Exception {
     	
-        Parent root = FXMLLoader.load(getClass().getResource("MainView.fxml"));
+        Parent root = FXMLLoader.load(getClass().getResource("ui/MainView.fxml"));
         
         Scene scene = new Scene(root);
         
         stage.setScene(scene);
 		stage.setTitle("Storage Client");
-		stage.initStyle(StageStyle.UTILITY);
+		stage.initStyle(StageStyle.DECORATED);
         stage.show();
     }
 

@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import java.lang.*?>
+<?import java.util.*?>
+<?import javafx.scene.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.canvas.*?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.control.TextArea?>
+
+<BorderPane id="Pane" prefHeight="400" prefWidth="320" xmlns:fx="http://javafx.com/fxml" fx:controller="storage.client.ui.MainController"
+	style="-fx-padding: 10; -fx-spacing: 5;" >
+	
+	<top>
+		<VBox>
+	
+			<GridPane>
+	
+				<Label text="User Id"
+					GridPane.columnIndex="0" GridPane.rowIndex="0" />
+    			<TextField fx:id="txtUserId" text="usr123"
+    				disable="${controller.mounted}"
+    				GridPane.columnIndex="1" GridPane.rowIndex="0" />
+    	
+    			<Label text="Mount point"
+    				GridPane.columnIndex="0" GridPane.rowIndex="1" />
+    			<TextField fx:id="txtMountPoint" text="P:/ds_mount"
+    				disable="${controller.mounted}"
+    				GridPane.columnIndex="1" GridPane.rowIndex="1" />
+    		
+    			<Button text="Sync"
+    				disable="${!controller.mounted}"
+    				style="-fx-width: 100%; -fx-height: 100%; -fx-font-size: 20;"
+    				onAction="#handleSync"
+    				GridPane.columnIndex="3" GridPane.rowIndex="0"
+    				GridPane.rowSpan="2" />
+    	
+			</GridPane>
+		
+			<HBox>
+	
+				<Button text="Mount" onAction="#handleMount" fx:id="btnMount"
+					disable="${controller.mounted}" />
+				<Button text="Unmount" onAction="#handleUnmount" fx:id="btnUnmount"
+					disable="${!controller.mounted}" />
+					
+				<Button text="Clear log" onAction="#handleClear" fx:id="btnClearLog" />
+		
+			</HBox>
+
+		</VBox>
+		
+	</top>
+	
+	<center>
+	
+		<TextArea fx:id="tarLog"
+			editable="false" />
+			
+	</center>
+	
+</BorderPane>

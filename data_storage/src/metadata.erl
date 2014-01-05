@@ -52,9 +52,8 @@ remove(FileId) ->
 	ets:delete(memDb, FileId),
 	dets:delete(perDb, FileId).
 
-get_by_user(_UserId) ->
-	%% @TODO implement
-	{ error, not_implemented }.
+get_by_user(UserId) ->
+	ets:lookup_element(memDb, UserId, #file.owner_id).
 
 to_list() ->
 	ets:tab2list(memDb).

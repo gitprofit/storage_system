@@ -8,16 +8,49 @@
 %% ====================================================================
 %% API functions
 %% ====================================================================
--export([create/2, delete/2, send_request/2]).
+-export([create/2,
+		 delete/2,
+		 read/2,
+		 write/3,
+		 send_request/2]).
 
 create(Node, FileName) ->
-	send_request(Node, #request{action=create,
-								file_id=FileName,
-								user_id="usr123"}).
+	case file:read_file(FileName) of
+		{ ok, RawData } ->
+	send_request(Node, #request{action	= create,
+								user_id	= "usr123",
+								options	= #create_opts{v_path	= FileName,
+													   data 	= RawData}
+								});
+		{ error, _ } ->
+			io:format("error!~n")
+	end.
 
 delete(Node, FileId) ->
-	send_request(Node, #request{action=delete,
-								file_id=FileId}).
+	send_request(Node, #request{action	= delete,
+								user_id	= "usr123",
+								file_id	= FileId
+							   }).
+
+read(Node, FileId) ->
+	send_request(Node, #request{action	= read,
+								user_id	= "usr123",
+								file_id	= FileId
+								}).
+
+write(Node, FileId, FileName) ->
+	case file:read_file(FileName) of
+		{ ok, RawData } ->
+	send_request(Node, #request{action	= write,
+								user_id	= "usr123",
+								file_id = FileId,
+								options	= #write_opts{v_path	= FileName,
+													  data 		= RawData}
+								});
+		{ error, _ } ->
+			io:format("error!~n")
+	end.
+	
 
 send_request(Node, #request{} = Req) ->
 	{ ?STORAGE_PROC, Node } ! { self(), Req },

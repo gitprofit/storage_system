@@ -13,3 +13,6 @@ erlide.log.lck
 .settings
 *.dump
 *.pyc
+/bin
+*.class
+*.jar

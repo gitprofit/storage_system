@@ -5,6 +5,7 @@
 -module(storage).
 -include("shared.hrl").
 -define(WORK_DIR, "P:\\local_ds_meta\\").
+-define(NODE_DIR, ?WORK_DIR ++ atom_to_list(node()) ++ "\\").
 
 %% ====================================================================
 %% API functions
@@ -23,7 +24,7 @@ stop() ->
 %% ====================================================================
 
 init() ->
-	NodeDir = ?WORK_DIR ++ atom_to_list(node()) ++ "\\",
+	NodeDir = ?NODE_DIR,
 	filelib:ensure_dir(NodeDir),
 	metadata:init(NodeDir++".metadata"),
 	
@@ -43,6 +44,13 @@ init() ->
 deinit() ->
 	io:format("bye. luv ja.~n"),
 	metadata:deinit().
+
+
+%%
+%% @TODO merge create into write
+%%
+
+
 
 loop() ->
 	receive
@@ -79,7 +87,7 @@ loop() ->
 		%% request = read | write | delete | move
 		{ Pid, #request{broadcast=Brdc} = Req } ->
 			case { metadata:get_by_id(Req#request.file_id), Brdc } of
-				{ { error, not_found }, yes } ->
+				{ { error, not_found }, true } ->
 					system:broadcast(?STORAGE_PROC, { Pid, Req });
 				{ { ok, _ }, _ } -> 
 					Pid ! process_request(Req)
@@ -94,7 +102,7 @@ loop() ->
 
 
 %%
-%% @TODO: permission checking !!!!!
+%% @TODO permission checking !!!!!
 %%
 
 
@@ -114,7 +122,7 @@ process_request(#request{action		= create,
 	{ ok, #file{id=NewId} } = metadata:add(File),
 	globals:set(fill, globals:get(fill)+byte_size(Data)),
 	
-	%% @TODO: writing Data
+	file:write_file(?NODE_DIR++NewId, Data),
 	
 	{ ok, NewId };
 
@@ -126,7 +134,11 @@ process_request(#request{action		= delete,
 	io:format("processing delete ...~n"),
 	metadata:remove(FileId),
 	
-	%% @TODO: remove file
+	
+	{ ok, File } = metadata:get_by_id(FileId),
+	globals:set(fill, globals:get(fill)-File#file.size),
+	
+	file:delete(?NODE_DIR++FileId),
 	
 	{ ok, deleted };
 
@@ -139,9 +151,7 @@ process_request(#request{action		= read,
 	{ ok, File } = metadata:get_by_id(FileId),
 	metadata:update(File#file{last_access=calendar:universal_time()}),
 	
-	%% TODO: load and return contents
-	
-	{ ok, File#file.v_path };
+	file:read_file(?NODE_DIR++FileId);
 
 
 
@@ -173,7 +183,7 @@ process_request(#request{action		= write,
 	
 	case Data of
 		no_upd -> ok;
-		_ -> ok %% @TODO: writing here
+		_ -> file:write_file(?NODE_DIR++FileId, Data)
 	end,
 	
 	{ ok, changes_written };

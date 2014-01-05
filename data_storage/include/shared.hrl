@@ -17,7 +17,7 @@
 -record(request, {
 				  	file_id,			% string (name in create request)
 					user_id,			% string
-					action,				% atom read | write | create | delete | move
+					action,				% atom read | write | create | delete | move | list
 					broadcast = true,	% atom true | false
 					options				% request-specific record
 					}).

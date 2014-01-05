@@ -12,6 +12,7 @@
 		 delete/2,
 		 read/2,
 		 write/3,
+		 grab_ids/2,
 		 send_request/2]).
 
 create(Node, FileName) ->
@@ -50,6 +51,10 @@ write(Node, FileId, FileName) ->
 		{ error, _ } ->
 			io:format("error!~n")
 	end.
+
+grab_ids(Node, UserId) ->
+	send_request(Node, #request{action	= list,
+								user_id	= UserId}).
 	
 
 send_request(Node, #request{} = Req) ->

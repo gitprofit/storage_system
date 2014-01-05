@@ -84,6 +84,19 @@ loop() ->
 
 			loop();
 		
+		%% list handled separately
+		{ Pid, #request{action		= list,
+						user_id		= UserId,
+						broadcast	= Brdc
+					   } = Req } ->
+			MyEntries = lists:map(fun(#file{id=FileId}) -> FileId end,
+								  metadata:get_by_user(UserId)),
+			case Brdc of
+				true -> Pid ! { ok, system:grab_ids(Req#request{broadcast=false})++MyEntries};
+				false -> Pid ! { ok, MyEntries }
+			end,
+			loop();
+		
 		%% request = read | write | delete | move
 		{ Pid, #request{broadcast=Brdc} = Req } ->
 			case { metadata:get_by_id(Req#request.file_id), Brdc } of

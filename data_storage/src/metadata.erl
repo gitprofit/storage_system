@@ -53,7 +53,7 @@ remove(FileId) ->
 	dets:delete(perDb, FileId).
 
 get_by_user(UserId) ->
-	ets:lookup_element(memDb, UserId, #file.owner_id).
+	ets:match_object(memDb, #file{owner_id=UserId, _='_'}).
 
 to_list() ->
 	ets:tab2list(memDb).

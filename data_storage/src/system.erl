@@ -8,7 +8,13 @@
 %% ====================================================================
 %% API functions
 %% ====================================================================
--export([start/1, stop/0, nodes/0, broadcast/2, pref_storage/1]).
+-export([start/1,
+		 stop/0,
+		 nodes/0,
+		 broadcast/2,
+		 pref_storage/1,
+		 grab_ids/1
+		]).
 
 start(InitialNodes) ->
 	register(?SYSTEM_PROC,
@@ -43,6 +49,17 @@ pref_storage(RequiredCap) ->
 					  after ?TIMEOUT -> Acc
 					  end
 			  end, { undefined, undefined }, [{node()} | ets:tab2list(?NODE_TAB)]).
+
+%% @doc Grabs user files from each remote node
+grab_ids(#request{action=list, broadcast=false} = Req) ->
+	lists:foldl(fun({Node}, Acc) ->
+					  { ?STORAGE_PROC, Node } ! { self(), Req },
+					  receive
+						  { ok, RemList } -> RemList++Acc;
+						  { error, _ } -> Acc
+					  after ?TIMEOUT -> Acc
+					  end
+			  end, [], ets:tab2list(?NODE_TAB)).
 
 %% ====================================================================
 %% Internal functions

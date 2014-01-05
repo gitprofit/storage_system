@@ -161,10 +161,11 @@ process_request(#request{action		= read,
 						 file_id	= FileId
 						}) ->
 	io:format("processing read ...~n"),
-	{ ok, File } = metadata:get_by_id(FileId),
+	{ ok, #file{v_path=VPath} = File } = metadata:get_by_id(FileId),
 	metadata:update(File#file{last_access=calendar:universal_time()}),
 	
-	file:read_file(?NODE_DIR++FileId);
+	{ ok, Data } = file:read_file(?NODE_DIR++FileId),
+	{ok, {VPath, Data} };
 
 
 

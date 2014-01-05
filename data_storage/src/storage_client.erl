@@ -15,6 +15,10 @@
 		 grab_ids/2,
 		 send_request/2]).
 
+%%
+%% @TODO handle operations concurrently !!!
+%%
+
 create(Node, FileName, UserId) ->
 	case file:read_file(FileName) of
 		{ ok, RawData } ->

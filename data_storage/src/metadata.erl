@@ -5,6 +5,11 @@
 -module(metadata).
 -include("shared.hrl").
 
+%%
+%% @TODO change PK: file_id to { user_id, v_path }
+%% @TODO remove file_id completely
+%%
+
 %% ====================================================================
 %% API functions
 %% ====================================================================

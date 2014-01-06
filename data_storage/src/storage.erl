@@ -89,7 +89,9 @@ loop() ->
 						user_id		= UserId,
 						broadcast	= Brdc
 					   } = Req } ->
-			MyEntries = lists:map(fun(#file{id=FileId}) -> FileId end,
+			MyEntries = lists:map(fun(#file{id=FileId, v_path=VPath}) ->
+										  { VPath, FileId }
+								  end,
 								  metadata:get_by_user(UserId)),
 			case Brdc of
 				true -> Pid ! { ok, system:grab_ids(Req#request{broadcast=false})++MyEntries};

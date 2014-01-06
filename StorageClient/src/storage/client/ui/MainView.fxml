@@ -17,18 +17,24 @@
 		<VBox>
 	
 			<GridPane>
-	
-				<Label text="User Id"
+			
+				<Label text="Gateway node"
 					GridPane.columnIndex="0" GridPane.rowIndex="0" />
-    			<TextField fx:id="txtUserId" text="usr123"
+    			<TextField fx:id="txtGatewayNode" text="ds001@PROFIT-PC"
     				disable="${controller.mounted}"
     				GridPane.columnIndex="1" GridPane.rowIndex="0" />
-    	
-    			<Label text="Mount point"
-    				GridPane.columnIndex="0" GridPane.rowIndex="1" />
-    			<TextField fx:id="txtMountPoint" text="P:/ds_mount"
+	
+				<Label text="User Id"
+					GridPane.columnIndex="0" GridPane.rowIndex="1" />
+    			<TextField fx:id="txtUserId" text="usr123"
     				disable="${controller.mounted}"
     				GridPane.columnIndex="1" GridPane.rowIndex="1" />
+    	
+    			<Label text="Mount point"
+    				GridPane.columnIndex="0" GridPane.rowIndex="2" />
+    			<TextField fx:id="txtMountPoint" text="P:/ds_mount"
+    				disable="${controller.mounted}"
+    				GridPane.columnIndex="1" GridPane.rowIndex="2" />
     		
     			<Button text="Sync"
     				disable="${!controller.mounted}"

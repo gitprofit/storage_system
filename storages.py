@@ -6,6 +6,7 @@ def spawnNode(name, initial):
 	return Popen(['erl',
 			 '-pa', './data_storage/ebin',
 			 '-i', './data_storage/include',
+			 '-setcookie', 'moje_ciastko',
 			 '-sname', name,
 			 '-s', 'node', 'start', initial
 			 ], creationflags=CREATE_NEW_CONSOLE)

@@ -8,10 +8,10 @@
 %% ====================================================================
 %% API functions
 %% ====================================================================
--export([create/3,
+-export([create/4,
 		 delete/3,
 		 read/3,
-		 write/4,
+		 write/5,
 		 grab_ids/2,
 		 send_request/2]).
 
@@ -19,12 +19,12 @@
 %% @TODO handle operations concurrently !!!
 %%
 
-create(Node, FileName, UserId) ->
-	case file:read_file(FileName) of
+create(Node, RealPath, UserId, VPath) ->
+	case file:read_file(RealPath) of
 		{ ok, RawData } ->
 	send_request(Node, #request{action	= create,
 								user_id	= UserId,
-								options	= #create_opts{v_path	= FileName,
+								options	= #create_opts{v_path	= VPath,
 													   data 	= RawData}
 								});
 		{ error, _ } ->
@@ -43,13 +43,13 @@ read(Node, FileId, UserId) ->
 								file_id	= FileId
 								}).
 
-write(Node, FileId, FileName, UserId) ->
-	case file:read_file(FileName) of
+write(Node, FileId, RealPath, UserId, VPath) ->
+	case file:read_file(RealPath) of
 		{ ok, RawData } ->
 	send_request(Node, #request{action	= write,
 								user_id	= UserId,
 								file_id = FileId,
-								options	= #write_opts{v_path	= FileName,
+								options	= #write_opts{v_path	= VPath,
 													  data 		= RawData}
 								});
 		{ error, _ } ->

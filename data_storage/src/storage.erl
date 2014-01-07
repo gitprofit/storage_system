@@ -147,12 +147,12 @@ process_request(#request{action		= delete,
 						 file_id	= FileId
 						}) ->
 	io:format("processing delete ...~n"),
-	metadata:remove(FileId),
-	
-	
+	io:format("id iz ~s~n", [FileId]),
+
 	{ ok, File } = metadata:get_by_id(FileId),
 	globals:set(fill, globals:get(fill)-File#file.size),
 	
+	metadata:remove(FileId),
 	file:delete(?NODE_DIR++FileId),
 	
 	{ ok, deleted };

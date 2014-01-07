@@ -39,7 +39,9 @@ public class FileSystemWatcher extends Thread {
 	public void run() {
 
 		WatchKey key;
-
+		
+		String lastCreated = "";
+		
 		while(!currentThread().isInterrupted()) {
 
 			try {
@@ -47,7 +49,8 @@ public class FileSystemWatcher extends Thread {
 			} catch (InterruptedException x) {
 				return;
 			}
-
+			
+			
 			for(WatchEvent<?> event : key.pollEvents()) {
 				WatchEvent.Kind<?> kind = event.kind();
 
@@ -58,19 +61,48 @@ public class FileSystemWatcher extends Thread {
 				Path path = ev.context();
 				Path absPath = watchPath.resolve(path);
 				
+				
+				
+				
+				if(kind == ENTRY_DELETE) {
+					// delete only indexed files
+					if(!storage.getLocalSys().containsKey(path.toString()))
+						continue;
+				}
 				// handle file-ops only
-				if(! new File(absPath.toString()).isFile())
+				else if(! new File(absPath.toString()).isFile()) {
+					System.out.println("consuming " + kind.name() + " of " + path.toString());
 					continue;
+				}
 				
 				if(kind == ENTRY_CREATE) {
 					c.log("creation of: " + path);
+					lastCreated = path.toString();
 					storage.create(absPath.toString(), path);
 				}
 				else if(kind == ENTRY_DELETE) {
 					c.log("deletion of: " + path);
+					storage.delete(absPath.toString(), path);
 				}
 				else if (kind == ENTRY_MODIFY) {
+					
+					System.out.println("modify:");
+					System.out.println("\tlast: " + lastCreated);
+					System.out.println("\tcurr: " + path.toString());
+					
+					//
+					// TODO FIX !!!!!!!!!!!!!!!!!!!!!!!
+					// works, but looks like crap
+					//
+					
+					if(path.toString().equals(lastCreated)) {
+						lastCreated = "";
+						System.out.println("skipping");
+						continue;
+					}
+					
 					c.log("modify of: " + path);
+					storage.write(absPath.toString(), path);
 				}
 			}
 			

@@ -1,10 +1,14 @@
 package storage.client.core;
 
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+
+import sun.util.logging.resources.logging;
 
 import com.ericsson.otp.erlang.*;
 
@@ -84,10 +88,13 @@ public class Storage {
 		
 		fullPath = fullPath.replace('\\', '/');
 		
+		System.out.println("full path is: " + fullPath);
+		
 		OtpErlangObject[] args = new OtpErlangObject[] {
 				new OtpErlangAtom(gatewayNode),
 				new OtpErlangString(fullPath),
-				new OtpErlangString(userId)
+				new OtpErlangString(userId),
+				new OtpErlangString(vPath.toString())
 		};
 
 		try {
@@ -110,9 +117,81 @@ public class Storage {
 		}
 	}
 	
+	public void delete(String fullPath, Path vPath) {
+		
+		//fullPath = fullPath.replace('\\', '/');
+		
+		String delId = localSys.get(vPath.toString());
+		
+		System.out.println("deleting id " + delId);
+		
+		OtpErlangObject[] args = new OtpErlangObject[] {
+				new OtpErlangAtom(gatewayNode),
+				new OtpErlangString(delId),
+				new OtpErlangString(userId)
+		};
+		
+		try {
+			connection.sendRPC("storage_client", "delete", args);
+			OtpErlangObject response = connection.receiveMsg().getMsg();
+			OtpErlangAtom res = (OtpErlangAtom)extractResult(response);
+			
+			if(res.atomValue() == "deleted") {
+				
+				synchronized(this) {
+					localSys.remove(vPath.toString());
+				}
+				
+				Files.delete(Paths.get(fullPath));
+			}
+			
+		} catch (IOException | 
+				OtpAuthException |
+				OtpErlangExit |
+				OtpErlangDecodeException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	public void write(String fullPath, Path vPath) {
+		
+		fullPath = fullPath.replace('\\', '/');
+		
+		String wrtId = localSys.get(vPath.toString());
+		
+		OtpErlangObject[] args = new OtpErlangObject[] {
+				new OtpErlangAtom(gatewayNode),
+				new OtpErlangString(wrtId),
+				new OtpErlangString(fullPath),
+				new OtpErlangString(userId),
+				new OtpErlangString(vPath.toString()),
+		};
+
+		try {
+			connection.sendRPC("storage_client", "write", args);
+			OtpErlangObject response = connection.receiveMsg().getMsg();
+			OtpErlangAtom res = (OtpErlangAtom)extractResult(response);
+			
+			if(res.atomValue() == "changes_written") {
+				
+				synchronized(this) {
+					localSys.remove(vPath.toString());
+				}
+				
+				Files.delete(Paths.get(fullPath));
+			};
+			
+		} catch (IOException | 
+				OtpAuthException |
+				OtpErlangExit |
+				OtpErlangDecodeException e) {
+			e.printStackTrace();
+			//return "_error_";
+		}
+	}
+	
 	public void read(String fileId) {
-		
-		
+		//
 	}
 	
 	private OtpErlangObject extractResult(OtpErlangObject rawResult) {

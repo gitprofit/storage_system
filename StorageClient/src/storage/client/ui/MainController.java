@@ -106,7 +106,7 @@ public class MainController implements Initializable {
 	{
 		log("User files:");
 		
-		storage.sync();
+		//storage.sync();
 
 		for(Map.Entry<String, String> kv : storage.getLocalSys().entrySet()) {
 			log(kv.getKey() + " is " + kv.getValue());

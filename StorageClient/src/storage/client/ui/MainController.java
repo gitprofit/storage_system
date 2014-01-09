@@ -4,6 +4,8 @@ import storage.client.core.*;
 
 import java.io.IOException;
 import java.net.URL;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Map;
 import java.util.ResourceBundle;
 
@@ -61,8 +63,10 @@ public class MainController implements Initializable {
 		String mountPoint = txtMountPoint.getText();
 		String gateway = txtGatewayNode.getText();
 		
-		log("Mounting: " + mountPoint);
+		Path root = Paths.get(mountPoint);
 		
+		log("Mounting: " + mountPoint);
+		/*
 		
 		try {
 			storage = new Storage("cl01@PROFIT-PC", "moje_ciastko");
@@ -75,10 +79,13 @@ public class MainController implements Initializable {
 			e.printStackTrace();
 			return;
 		}
-		
+		*/
 		
 		try {
-			watcher = new FileSystemWatcher(this, storage, txtMountPoint.getText());
+			Index index = new Index(root);
+			index.update();
+			
+			watcher = new FileSystemWatcher(root, index);
 			watcher.start();
 			
 		} catch (IOException e) {
@@ -105,13 +112,6 @@ public class MainController implements Initializable {
 	private void handleSync(ActionEvent event)
 	{
 		log("User files:");
-		
-		//storage.sync();
-
-		for(Map.Entry<String, String> kv : storage.getLocalSys().entrySet()) {
-			log(kv.getKey() + " is " + kv.getValue());
-		}
-		
 		logSep();
 	}
 	

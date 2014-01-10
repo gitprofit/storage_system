@@ -3,6 +3,9 @@ package storage.client.core;
 import java.io.*;
 import java.nio.file.*;
 
+import storage.client.core.indexer.JNotifyIndexer;
+import storage.client.core.watcher.*;
+
 
 /**
 *
@@ -11,13 +14,14 @@ import java.nio.file.*;
 public class LocalFileSystem {
 	
 	private final Path root;
-	private final Index index;
-	private final FileSystemWatcher watcher;
+	
+	private final JNotifyIndexer index;
+	private final Watcher watcher;
 	
 	public LocalFileSystem(Path mountPoint) throws IOException {
 		root = mountPoint;
-		index = new Index(root);
-		watcher = new FileSystemWatcher(root, index);
+		index = new JNotifyIndexer(root);
+		watcher = new JNotifyWatcher(root, index);
 		
 		scan();
 	}
@@ -29,7 +33,7 @@ public class LocalFileSystem {
 	
 	public void unmount() {
 		
-		watcher.interrupt();
+		watcher.stop();
 	}
 	
 	private void scan() throws IOException {

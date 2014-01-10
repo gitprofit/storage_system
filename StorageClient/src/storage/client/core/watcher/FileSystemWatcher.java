@@ -1,4 +1,5 @@
-package storage.client.core;
+package storage.client.core.watcher;
+
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -9,6 +10,7 @@ import java.nio.channels.FileLock;
 import java.nio.file.*;
 import java.util.Set;
 
+import storage.client.core.indexer.JNotifyIndexer;
 import storage.client.ui.MainController;
 import static java.nio.file.StandardWatchEventKinds.*;
 import static com.sun.nio.file.ExtendedWatchEventModifier.*;
@@ -16,14 +18,17 @@ import static com.sun.nio.file.ExtendedWatchEventModifier.*;
 /**
 *
 * @author Michal
+* @deprecated Use JNotifyWatcher instead
 */
+@SuppressWarnings("unused")
+@Deprecated
 public class FileSystemWatcher extends Thread {
 	
-	private final Index index;
+	private final JNotifyIndexer index;
 	private final Path watchPath;
 	private final WatchService watcher;
 
-	public FileSystemWatcher(Path watchDir, Index index) throws IOException {
+	public FileSystemWatcher(Path watchDir, JNotifyIndexer index) throws IOException {
 		
 		this.index = index;
 		watchPath = watchDir;
@@ -80,12 +85,12 @@ public class FileSystemWatcher extends Thread {
 				if(kind == ENTRY_CREATE) {
 					
 					
-					
+					/*
 					try {
 						index.insert(path);
 					} catch (InvalidFileException e) {
 						e.printStackTrace();
-					}
+					}*/
 					
 					if(index.isFile(path))
 						System.out.println("create: " + path.toString());
@@ -131,6 +136,7 @@ public class FileSystemWatcher extends Thread {
 				}
 				else if(kind == ENTRY_DELETE) {
 					
+					/*
 					if(index.isDirectory(path)) {
 						Set<Path> p = index.removeSubtreeFiles(path);
 						
@@ -138,7 +144,7 @@ public class FileSystemWatcher extends Thread {
 							System.out.println("\tdelete sub: " + f.toString());
 						}
 					}
-					
+					*/
 					if(index.isFile(path))
 						System.out.println("delete: " + path.toString());
 					

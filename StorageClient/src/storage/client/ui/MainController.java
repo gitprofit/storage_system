@@ -1,6 +1,8 @@
 package storage.client.ui;
 
 import storage.client.core.*;
+import storage.client.core.indexer.JNotifyIndexer;
+import storage.client.core.watcher.JNotifyWatcher;
 
 import java.io.IOException;
 import java.net.URL;
@@ -49,7 +51,10 @@ public class MainController implements Initializable {
 	@FXML private ListView<String> lvLog;
 	@FXML private TextArea tarLog;
 	
-	FileSystemWatcher watcher = null;
+	//FileSystemWatcher watcher = null;
+	JNotifyWatcher watcher = null;
+	//CommonsWatcher watcher = null;
+	
 	Storage storage = null;
 	
 	public MainController()
@@ -57,6 +62,7 @@ public class MainController implements Initializable {
 		//
 	}
     
+	JNotifyIndexer index;
 	@FXML
 	private void handleMount(ActionEvent event)
 	{
@@ -82,10 +88,13 @@ public class MainController implements Initializable {
 		*/
 		
 		try {
-			Index index = new Index(root);
+			index = new JNotifyIndexer(root);
 			index.update();
 			
-			watcher = new FileSystemWatcher(root, index);
+			//watcher = new FileSystemWatcher(root, index);
+			watcher = new JNotifyWatcher(root, index);
+			//watcher = new CommonsWatcher(root);
+			
 			watcher.start();
 			
 		} catch (IOException e) {
@@ -104,6 +113,8 @@ public class MainController implements Initializable {
 	private void handleUnmount(ActionEvent event)
 	{
 		watcher.interrupt();
+		
+		index.dump();
 		
 		setMounted(false);
 	}

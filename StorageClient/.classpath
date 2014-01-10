@@ -4,5 +4,11 @@
 	<classpathentry kind="con" path="at.bestsolution.efxclipse.tooling.jdt.core.JAVAFX_CONTAINER"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
 	<classpathentry kind="lib" path="C:/Program Files/erl5.10.3/lib/jinterface-1.5.8/priv/OtpErlang.jar"/>
+	<classpathentry kind="lib" path="P:/_studia_done/agh/semestr5/tw/projekt/jnotify-lib-0.94/jnotify-0.94.jar">
+		<attributes>
+			<attribute name="org.eclipse.jdt.launching.CLASSPATH_ATTR_LIBRARY_PATH_ENTRY" value="P:/_studia_done/agh/semestr5/tw/projekt/jnotify-lib-0.94"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="P:/_studia_done/agh/semestr5/tw/projekt/commons-io-2.4/commons-io-2.4.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

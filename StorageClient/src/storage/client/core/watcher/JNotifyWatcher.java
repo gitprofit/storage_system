@@ -4,7 +4,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
-import storage.client.core.indexer.JNotifyIndexer;
+import storage.client.core.indexer.Indexer;
 
 import net.contentobjects.jnotify.JNotify;
 import net.contentobjects.jnotify.JNotifyException;
@@ -20,11 +20,11 @@ public class JNotifyWatcher implements Watcher {
 	private final int mask;
 	private final boolean watchSubtree;
 	
-	private final JNotifyIndexer index;
+	private final Indexer index;
 	
 	private int watchID;
 	
-	public JNotifyWatcher(Path root, JNotifyIndexer index) throws IOException {
+	public JNotifyWatcher(Path root, Indexer index) throws IOException {
 		
 		
 		path = root.toString();
@@ -60,9 +60,9 @@ public class JNotifyWatcher implements Watcher {
 
 class Listener implements JNotifyListener {
 	
-	private final JNotifyIndexer index;
+	private final Indexer index;
 	
-	public Listener(JNotifyIndexer index) {
+	public Listener(Indexer index) {
 		this.index = index;
 	}
 	
@@ -76,7 +76,7 @@ class Listener implements JNotifyListener {
     public void fileModified(int wd, String rootPath, String name) {
       print(wd + ": modified " + rootPath + " : " + name);
       
-      
+      index.modify(Paths.get(name));
     }
     
     public void fileDeleted(int wd, String rootPath, String name) {

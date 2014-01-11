@@ -5,7 +5,12 @@ import java.nio.file.*;
 import java.util.*;
 import java.nio.file.attribute.*;
 
-import storage.client.core.action.FileAction;
+import storage.client.core.action.Action;
+import storage.client.core.action.CreateAction;
+import storage.client.core.action.DeleteAction;
+import storage.client.core.action.ModifyAction;
+import storage.client.core.action.RenameAction;
+import storage.client.core.executor.Executor;
 
 
 /**
@@ -19,7 +24,7 @@ public class JNotifyIndexer implements Indexer {
 	private Set<Path> files;			// all inxedex paths are relative to the root
 	private Set<Path> dirs;
 	
-	private List<FileAction> actions;	// queue, random access needed internally
+	private final Executor executor;
 	
 	/*
 	 * More formally, sets contain no pair of elements e1 and e2 such that e1.equals(e2)
@@ -33,29 +38,38 @@ public class JNotifyIndexer implements Indexer {
 	 */
 	
 	
-	public JNotifyIndexer(Path mountPoint) throws IOException {
+	public JNotifyIndexer(Path mountPoint, Executor executor) throws IOException {
 		root = mountPoint;
 		files = new HashSet<>();
 		dirs = new HashSet<>();
-		actions = new ArrayList<>();
+		this.executor = executor;
 	}
 	
-	public synchronized void insert(Path path) { //throws InvalidFileException {
+	public synchronized void insert(Path path) {
 		
 		Path absolutePath = root.resolve(path);
 		Path relativePath = root.relativize(absolutePath);
 		
 		File file = absolutePath.toFile();
 		
-		if(file.isFile())       files.add(relativePath);
+		if(file.isFile()) {
+			files.add(relativePath);
+			executor.execute(new CreateAction(relativePath));
+		}
 		else if(file.isDirectory()) dirs.add(relativePath);
-		
-		//else throw new InvalidFileException(absolutePath.toString());
 	}
 	
 	public synchronized void remove(Path path) {
-		files.remove(path);
-		dirs.remove(path);
+		if(files.remove(path)) {
+			executor.execute(new DeleteAction(path));
+		}
+		else
+			dirs.remove(path);
+	}
+	
+	public synchronized void modify(Path path) {
+		if(isFile(path))
+			executor.execute(new ModifyAction(path));
 	}
 	
 	public synchronized void rename(Path from, Path to) {
@@ -75,6 +89,7 @@ public class JNotifyIndexer implements Indexer {
 					Path constPart = from.relativize(file);
 					to.resolve(constPart);
 					System.out.println("renaming file " + file + " to " + to.resolve(constPart));
+					executor.execute(new RenameAction(file, to.resolve(constPart)));
 					newFiles.add(to.resolve(constPart));
 				} else {
 					System.out.println("leaving file " + file);
@@ -97,6 +112,7 @@ public class JNotifyIndexer implements Indexer {
 			
 		}
 		else if(isFile(from)) {
+			executor.execute(new RenameAction(from, to));
 			files.remove(from);
 			files.add(to);
 		}
@@ -143,30 +159,5 @@ public class JNotifyIndexer implements Indexer {
 				return super.preVisitDirectory(path, attrs);
 			}
 		});
-	}
-	
-	private void offer(FileAction action) {
-		
-		// reducing
-		boolean reduced = false;
-		for(int i=actions.size()-1; i>=0; --i) {
-			if(actions.get(i).reducedBy(action)) {
-				actions.set(i, actions.get(i).reduceWith(action));
-				reduced = true;
-				break;
-			}
-		}
-		if(!reduced)
-			actions.add(action);
-	}
-
-	@Override
-	public synchronized FileAction poll() {
-		
-		while(!actions.isEmpty())
-			try { this.wait(); }
-			catch(InterruptedException e) { }
-
-		return actions.remove(0);
 	}
 }

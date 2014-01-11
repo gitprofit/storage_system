@@ -52,10 +52,12 @@ public class MainController implements Initializable {
 	@FXML private TextArea tarLog;
 	
 	//FileSystemWatcher watcher = null;
-	JNotifyWatcher watcher = null;
+	//JNotifyWatcher watcher = null;
 	//CommonsWatcher watcher = null;
 	
-	Storage storage = null;
+	//Storage storage = null;
+	
+	LocalFileSystem fs = null;
 	
 	public MainController()
 	{
@@ -88,16 +90,17 @@ public class MainController implements Initializable {
 		*/
 		
 		try {
-			index = new JNotifyIndexer(root);
-			index.update();
-			
+
 			//watcher = new FileSystemWatcher(root, index);
-			watcher = new JNotifyWatcher(root, index);
+			//watcher = new JNotifyWatcher(root, index);
 			//watcher = new CommonsWatcher(root);
 			
-			watcher.start();
+			//watcher.start();
 			
-		} catch (IOException e) {
+			fs = new LocalFileSystem(root);
+			fs.mount();
+			
+		} catch (IOException | OtpAuthException e) {
 			
 			log("Mounting failed: Cannot instantiate FileSystemWatcher");
 			e.printStackTrace();
@@ -112,10 +115,7 @@ public class MainController implements Initializable {
 	@FXML
 	private void handleUnmount(ActionEvent event)
 	{
-		watcher.interrupt();
-		
-		index.dump();
-		
+		fs.unmount();
 		setMounted(false);
 	}
 	

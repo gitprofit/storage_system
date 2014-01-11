@@ -5,29 +5,25 @@
 -module(metadata).
 -include("shared.hrl").
 
-%%
-%% @TODO change PK: file_id to { user_id, v_path }
-%% @TODO remove file_id completely
-%%
-
 %% ====================================================================
 %% API functions
 %% ====================================================================
 -export([init/1,
 		 deinit/0,
 		 dump/0,
-		 add/1,
-		 update/1,
-		 get_by_id/1,
-		 remove/1,
-		 get_by_user/1,
-		 to_list/0]).
+		 create/1,
+		 modify/1,
+		 delete/1,
+		 get/2,
+		 get/1,
+		 to_list/0
+		]).
 
 init(FileMetaLocation) ->
-	ets:new(memDb, [named_table, {keypos, #file.id}]),
+	ets:new(memDb, [named_table, { keypos, #file.local_id }]),
 	dets:open_file(perDb, [
-						   	{file, FileMetaLocation },
-						  	{keypos, #file.id}
+						   	{ file, FileMetaLocation },
+						  	{ keypos, #file.local_id }
 					]),
 	dets:to_ets(perDb, memDb),
 	ok.
@@ -37,28 +33,31 @@ deinit() ->
 	dets:close(perDb),
 	ok.
 
-add(#file{} = File) ->
-	InsFile = File#file{id=uuid:generate()},
-	%% @TODO init other fields
-	update(InsFile).
+create(#file{} = File) ->
+	InsFile = File#file{ local_id = uuid:generate() },
+	modify(InsFile).
 
-update(#file{} = File) ->
+modify(#file{} = File) ->
 	ets:insert(memDb, File),
 	dets:insert(perDb, File),
 	{ ok, File }.
 
-get_by_id(FileId) ->
-	case ets:lookup(memDb, FileId) of
+delete(#file{} = File) ->
+	ets:delete(memDb, File#file.local_id),
+	dets:delete(perDb, File#file.local_id).
+
+get(UserId, VPath) ->
+	case ets:match_object(memDb, #file{ owner_id = UserId,
+										v_path = VPath,
+										_ = '_'
+									  }) of
 		[File]	-> { ok, File };
-		[]		-> { error, not_found }
+		[]		-> { error, not_found };
+		_		-> { error, too_many }
 	end.
 
-remove(FileId) ->
-	ets:delete(memDb, FileId),
-	dets:delete(perDb, FileId).
-
-get_by_user(UserId) ->
-	ets:match_object(memDb, #file{owner_id=UserId, _='_'}).
+get(UserId) ->
+	ets:match_object(memDb, #file{ owner_id = UserId, _ = '_' }).
 
 to_list() ->
 	ets:tab2list(memDb).
@@ -66,7 +65,7 @@ to_list() ->
 dump() ->
 	ets:foldl(fun(Elem, _Acc) ->
 					  Name = Elem#file.v_path,
-					  Id = Elem#file.id,
+					  Id = Elem#file.local_id,
 					  io:format("file ~s as ~s~n", [Name, Id]),
 					  _Acc
 			  end, [], memDb).

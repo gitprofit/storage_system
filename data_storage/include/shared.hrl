@@ -7,30 +7,33 @@
 -define(TIMEOUT, 1000).
 
 -record(file, {
-					id,					% string (uuid)
+			   		v_path	= "/empty",	% string			// THIS AND THIS
+			   		owner_id,			% string (uuid)		// FORMS PRIMARY KEY
+
+					local_id,			% string (uuid) 	// **ONLY INTERNAL USE !!!!**
+
 					size,				% in bytes
-					last_access,		% calendar:universal_time()
-					owner_id,			% string (uuid)
-					v_path	= "/empty"	% string
+					last_access			% calendar:universal_time()
+					
 					}).
 
 -record(request, {
-				  	file_id,			% string (name in create request)
+				  	v_path = "/empty",	% string
 					user_id,			% string
+
 					action,				% atom read | write | create | delete | move | list
 					broadcast = true,	% atom true | false
 					options				% request-specific record
 					}).
 
 -record(create_opts, {
-						v_path = "/empty",	% string
 					  	force_loc = false,	% atom true | false
 						data				% raw data
 						}).
 
 -record(write_opts, {
-						v_path = no_upd,	% undefined = no update
-						data = no_upd		%
+						v_path = false,	% false = no update
+						data = false	%
 						}).
 
 -record(move_opts, {

@@ -47,9 +47,12 @@ deinit() ->
 
 
 %%
-%% @TODO merge create into write
+%% TODO consider merging create into write
 %%
 
+%%
+%% TODO handle broadcasts in another thread
+%% 
 
 
 loop() ->
@@ -89,10 +92,8 @@ loop() ->
 						user_id		= UserId,
 						broadcast	= Brdc
 					   } = Req } ->
-			MyEntries = lists:map(fun(#file{id=FileId, v_path=VPath}) ->
-										  { VPath, FileId }
-								  end,
-								  metadata:get_by_user(UserId)),
+			MyEntries = lists:map(fun(#file{v_path=VPath}) -> { VPath } end,
+								  metadata:get(UserId)),
 			case Brdc of
 				true -> Pid ! { ok, system:grab_ids(Req#request{broadcast=false})++MyEntries};
 				false -> Pid ! { ok, MyEntries }
@@ -100,10 +101,14 @@ loop() ->
 			loop();
 		
 		%% request = read | write | delete | move
-		{ Pid, #request{broadcast=Brdc} = Req } ->
-			case { metadata:get_by_id(Req#request.file_id), Brdc } of
+		{ Pid, #request{broadcast	= Brdc,
+						user_id		= UserId,
+						v_path		= VPath } = Req } ->
+			case { metadata:get(UserId, VPath), Brdc } of
 				{ { error, not_found }, true } ->
-					system:broadcast(?STORAGE_PROC, { Pid, Req });
+					system:broadcast(?STORAGE_PROC, { Pid, Req#request{broadcast=false} });
+				{ { error, Err }, _ } ->
+					Pid ! { error, Err };
 				{ { ok, _ }, _ } -> 
 					Pid ! process_request(Req)
 			end,
@@ -117,14 +122,14 @@ loop() ->
 
 
 %%
-%% @TODO permission checking !!!!!
+%% TODO permission checking !!!!!
 %%
 
 
 process_request(#request{action		= create,
 						 user_id	= UserId,
-						 options	= #create_opts{v_path	= VPath,
-												   data		= Data}
+						 v_path		= VPath,
+						 options	= #create_opts{ data = Data }
 						}) ->
 	io:format("processing create ...~n"),
 	io:format("new file iz ~s~n", [VPath]),
@@ -134,58 +139,65 @@ process_request(#request{action		= create,
 				 size			= byte_size(Data),
 				 v_path			= VPath},
 	
-	{ ok, #file{id=NewId} } = metadata:add(File),
+	{ ok, #file{local_id=NewId} } = metadata:create(File),
 	globals:set(fill, globals:get(fill)+byte_size(Data)),
 	
 	file:write_file(?NODE_DIR++NewId, Data),
 	
-	{ ok, NewId };
+	{ ok, created };
 
 
 
 process_request(#request{action		= delete,
-						 file_id	= FileId
+						 user_id	= UserId,
+						 v_path		= VPath
 						}) ->
 	io:format("processing delete ...~n"),
-	io:format("id iz ~s~n", [FileId]),
+	io:format("id iz ~s~n", [VPath]),
 
-	{ ok, File } = metadata:get_by_id(FileId),
+	{ ok, File } = metadata:get(UserId, VPath),
 	globals:set(fill, globals:get(fill)-File#file.size),
 	
-	metadata:remove(FileId),
-	file:delete(?NODE_DIR++FileId),
+	metadata:delete(File),
+	file:delete(?NODE_DIR++File#file.local_id),
 	
 	{ ok, deleted };
 
 
 
 process_request(#request{action		= read,
-						 file_id	= FileId
+						 user_id	= UserId,
+						 v_path		= VPath
 						}) ->
 	io:format("processing read ...~n"),
-	{ ok, #file{v_path=VPath} = File } = metadata:get_by_id(FileId),
-	metadata:update(File#file{last_access=calendar:universal_time()}),
+	{ ok, #file{} = File } = metadata:get_by_id(UserId, VPath),
+	metadata:modify(File#file{last_access=calendar:universal_time()}),
 	
-	{ ok, Data } = file:read_file(?NODE_DIR++FileId),
-	{ok, {VPath, Data} };
+	{ ok, Data } = file:read_file(?NODE_DIR++File#file.local_id),
+	{ok, Data };
 
 
 
 process_request(#request{action		= write,
-						 file_id	= FileId,
-						 options	= #write_opts{v_path	= VPath,
-												  data		= Data}
+						 user_id	= UserId,
+						 v_path		= VPath,
+						 options	= #write_opts{data = Data,
+												  v_path = VPath2 }
 						}) ->
-	io:format("processing write ...~n"),
-	{ ok, File } = metadata:get_by_id(FileId),
+	io:format("processing write ...~s~n", [VPath]),
 	
-	NewVPath = case VPath of
-				   no_upd -> File#file.v_path;
-				   _ -> VPath
+	
+	{ ok, File } = metadata:get(UserId, VPath),
+	io:format("retrieved as: ~s~n", [File#file.local_id]),
+	timer:sleep(1000),
+	
+	NewVPath = case VPath2 of
+				   false -> File#file.v_path;
+				   _ -> VPath2
 			   end,
 	
 	NewSize = case Data of
-				  no_upd -> File#file.size;
+				  false -> File#file.size;
 				   _ -> globals:set(fill, globals:get(fill)-File#file.size),
 						globals:set(fill, globals:get(fill)+byte_size(Data)), 
 						byte_size(Data)
@@ -195,11 +207,11 @@ process_request(#request{action		= write,
 						size			= NewSize,
 						v_path			= NewVPath},
 	
-	metadata:update(NewFile),
+	metadata:modify(NewFile),
 	
 	case Data of
-		no_upd -> ok;
-		_ -> file:write_file(?NODE_DIR++FileId, Data)
+		false -> ok;
+		_ -> file:write_file(?NODE_DIR++NewFile#file.local_id, Data)
 	end,
 	
 	{ ok, changes_written };

@@ -1,0 +1,1 @@
+erl -pa ./data_storage/ebin -i ./data_storage/include -sname cl01 -setcookie moje_ciastko -run storage_client start ds001@PROFIT-PC usr123 P:/ds_mount

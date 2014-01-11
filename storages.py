@@ -33,4 +33,7 @@ def start(num):
 
 def stop():
 	for node in nodes:
-		node.kill()
+		try:
+			node.kill()
+		except:
+			pass

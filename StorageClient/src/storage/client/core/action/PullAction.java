@@ -20,7 +20,7 @@ public class PullAction extends NonReducibleAction {
 				new OtpErlangString(path.toString())
 		};
 		
-		return new ErlangNodeCall("storage_client", "pull", args);
+		return new ErlangNodeCall("storage_client", "pull2", args);
 	}
 
 }

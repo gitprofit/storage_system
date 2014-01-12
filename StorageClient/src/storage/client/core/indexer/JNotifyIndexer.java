@@ -146,7 +146,7 @@ public class JNotifyIndexer implements Indexer {
 		final Map<Path, Long> remoteStatus = new HashMap<Path, Long>();
 		final Set<Action> syncQueue = new HashSet<Action>();
 		
-		ErlangNodeCall call = new ErlangNodeCall("storage_client", "scan", new OtpErlangObject[]{});
+		ErlangNodeCall call = new ErlangNodeCall("storage_client", "scan2", new OtpErlangObject[]{});
 		OtpErlangObject res = executor.execute(call);
 		OtpErlangTuple resp = (OtpErlangTuple)res;
 		

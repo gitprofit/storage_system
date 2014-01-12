@@ -20,6 +20,6 @@ public class DeleteAction extends NonReducibleAction {
 				new OtpErlangString(path.toString())
 		};
 		
-		return new ErlangNodeCall("storage_client", "delete", args);
+		return new ErlangNodeCall("storage_client", "delete2", args);
 	}
 }

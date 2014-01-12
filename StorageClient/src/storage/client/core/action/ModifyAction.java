@@ -20,7 +20,7 @@ public class ModifyAction extends NonReducibleAction {
 				new OtpErlangString(path.toString())
 		};
 		
-		return new ErlangNodeCall("storage_client", "write", args);
+		return new ErlangNodeCall("storage_client", "write2", args);
 	}
 
 }

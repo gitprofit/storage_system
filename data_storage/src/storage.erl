@@ -115,7 +115,7 @@ loop() ->
 					ok;
 				{ { ok, _ }, _ } -> 
 					io:format("REQUEST: found, , ~s~n", [VPath]),
-					Pid ! process_request(Req)
+					Pid ! process_request(Req) 
 			end,
 			loop();
 		

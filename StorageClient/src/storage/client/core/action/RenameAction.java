@@ -23,7 +23,7 @@ public class RenameAction extends NonReducibleAction {
 				new OtpErlangString(pathTo.toString())
 		};
 		
-		return new ErlangNodeCall("storage_client", "rename", args);
+		return new ErlangNodeCall("storage_client", "rename2", args);
 	}
 
 }

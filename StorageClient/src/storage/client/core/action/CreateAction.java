@@ -20,7 +20,7 @@ public class CreateAction extends NonReducibleAction {
 				new OtpErlangString(path.toString())
 		};
 		
-		return new ErlangNodeCall("storage_client", "create", args);
+		return new ErlangNodeCall("storage_client", "create2", args);
 	}
 
 }

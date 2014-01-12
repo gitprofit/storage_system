@@ -218,10 +218,12 @@ public class JNotifyIndexer implements Indexer {
 		// pull all and ensure dirs
 		
 		for(Path path : remoteStatus.keySet()) {
-			
+
 			System.out.println("remote-only pull " + path);
 			syncQueue.add(new PullAction(path));
 			System.out.println("name count iz " + path.getNameCount());
+			
+			files.add(path);
 			
 			// add dirs
 			for(int i=1; i<path.getNameCount(); ++i) {

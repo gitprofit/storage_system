@@ -92,10 +92,12 @@ loop() ->
 						user_id		= UserId,
 						broadcast	= Brdc
 					   } = Req } ->
-			MyEntries = lists:map(fun(#file{v_path=VPath}) -> { VPath } end,
+			MyEntries = lists:map(fun(#file{v_path=VPath, last_access=Time}) ->
+										  { VPath, Time }
+								  end,
 								  metadata:get(UserId)),
 			case Brdc of
-				true -> Pid ! { ok, system:grab_ids(Req#request{broadcast=false})++MyEntries};
+				true -> Pid ! { ok, system:scan(Req#request{broadcast=false})++MyEntries};
 				false -> Pid ! { ok, MyEntries }
 			end,
 			loop();
@@ -106,10 +108,13 @@ loop() ->
 						v_path		= VPath } = Req } ->
 			case { metadata:get(UserId, VPath), Brdc } of
 				{ { error, not_found }, true } ->
+					io:format("REQUEST: broadcast & not found, ~s~n", [VPath]),
 					system:broadcast(?STORAGE_PROC, { Pid, Req#request{broadcast=false} });
-				{ { error, Err }, _ } ->
-					Pid ! { error, Err };
+				{ { error, _Err }, _ } ->
+					io:format("REQUEST: error, do not broadcast, ~s~n", [VPath]),
+					ok;
 				{ { ok, _ }, _ } -> 
+					io:format("REQUEST: found, , ~s~n", [VPath]),
 					Pid ! process_request(Req)
 			end,
 			loop();
@@ -135,7 +140,7 @@ process_request(#request{action		= create,
 	io:format("new file iz ~s~n", [VPath]),
 	
 	File = #file{owner_id		= UserId,
-				 last_access	= calendar:universal_time(),
+				 last_access	= util:timestamp(),
 				 size			= byte_size(Data),
 				 v_path			= VPath},
 	
@@ -170,10 +175,12 @@ process_request(#request{action		= read,
 						 v_path		= VPath
 						}) ->
 	io:format("processing read ...~n"),
-	{ ok, #file{} = File } = metadata:get_by_id(UserId, VPath),
-	metadata:modify(File#file{last_access=calendar:universal_time()}),
-	
+	{ ok, File } = metadata:get(UserId, VPath),
+	io:format("got file ~s~n", [File#file.v_path]),
+	metadata:modify(File#file{last_access=util:timestamp()}),
+	io:format("meta modified!~n"),
 	{ ok, Data } = file:read_file(?NODE_DIR++File#file.local_id),
+	io:format("got ~w bytes!~n", [byte_size(Data)]),
 	{ok, Data };
 
 
@@ -184,17 +191,18 @@ process_request(#request{action		= write,
 						 options	= #write_opts{data = Data,
 												  v_path = VPath2 }
 						}) ->
-	io:format("processing write ...~s~n", [VPath]),
+	io:format("processing write ~s ...~n", [VPath]),
 	
 	
 	{ ok, File } = metadata:get(UserId, VPath),
 	io:format("retrieved as: ~s~n", [File#file.local_id]),
-	timer:sleep(1000),
+	%%timer:sleep(1000),
 	
 	NewVPath = case VPath2 of
 				   false -> File#file.v_path;
 				   _ -> VPath2
 			   end,
+	io:format("path set to: ~s~n", [NewVPath]),
 	
 	NewSize = case Data of
 				  false -> File#file.size;
@@ -202,18 +210,20 @@ process_request(#request{action		= write,
 						globals:set(fill, globals:get(fill)+byte_size(Data)), 
 						byte_size(Data)
 			   end,
+	io:format("size set to: ~w~n", [NewSize]),
 	
-	NewFile = File#file{last_access		= calendar:universal_time(),
+	NewFile = File#file{last_access		= util:timestamp(),
 						size			= NewSize,
 						v_path			= NewVPath},
 	
 	metadata:modify(NewFile),
 	
 	case Data of
-		false -> ok;
-		_ -> file:write_file(?NODE_DIR++NewFile#file.local_id, Data)
+		false -> io:format("data not changed~n"), ok;
+		_ -> io:format("writing data~n"),
+			 file:write_file(?NODE_DIR++NewFile#file.local_id, Data)
 	end,
-	
+	io:format("writing done!!!!!!!!!!!!!!~n"),
 	{ ok, changes_written };
 
 

@@ -13,7 +13,7 @@
 					local_id,			% string (uuid) 	// **ONLY INTERNAL USE !!!!**
 
 					size,				% in bytes
-					last_access			% calendar:universal_time()
+					last_access			% util:timestamp()
 					
 					}).
 

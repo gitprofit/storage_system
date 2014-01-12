@@ -13,7 +13,7 @@
 		 nodes/0,
 		 broadcast/2,
 		 pref_storage/1,
-		 grab_ids/1
+		 scan/1
 		]).
 
 start(InitialNodes) ->
@@ -51,7 +51,7 @@ pref_storage(RequiredCap) ->
 			  end, { undefined, undefined }, [{node()} | ets:tab2list(?NODE_TAB)]).
 
 %% @doc Grabs user files from each remote node
-grab_ids(#request{action=list, broadcast=false} = Req) ->
+scan(#request{action=list, broadcast=false} = Req) ->
 	lists:foldl(fun({Node}, Acc) ->
 					  { ?STORAGE_PROC, Node } ! { self(), Req },
 					  receive

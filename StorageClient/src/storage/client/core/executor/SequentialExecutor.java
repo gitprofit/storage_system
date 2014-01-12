@@ -42,4 +42,9 @@ public class SequentialExecutor implements Executor {
 		
 		// TODO check returned status here
 	}
+	
+	@Override
+	public OtpErlangObject execute(ErlangNodeCall call) {
+		return call.executeWith(connection);
+	}
 }

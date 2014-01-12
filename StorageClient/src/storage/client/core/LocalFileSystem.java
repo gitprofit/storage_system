@@ -22,11 +22,16 @@ public class LocalFileSystem {
 	private final Watcher watcher;
 	private final Executor executor;
 	
+	private final String userId;
+	
+	
 	public LocalFileSystem(Path mountPoint)
 			throws IOException, OtpAuthException {
 		
+		userId = "usr123";
+		
 		root = mountPoint;
-		executor = new SequentialExecutor("usr123", "cl01@PROFIT-PC", "ds001@PROFIT-PC");
+		executor = new SequentialExecutor(userId, "cl01@PROFIT-PC", "ds001@PROFIT-PC");
 		index = new JNotifyIndexer(root, executor);
 		watcher = new JNotifyWatcher(root, index);
 		
@@ -44,13 +49,17 @@ public class LocalFileSystem {
 		watcher.stop();
 	}
 	
-	/*
-	private void scan() throws IOException {
+	public void sync() {
+		
+		// TODO dont stop the watcher thread, just ignore pulled files
+		watcher.stop();
+		
 		try {
 			index.update();
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
-	}*/
-
+		
+		watcher.start();
+	}
 }

@@ -2,14 +2,13 @@ package storage.client.core.indexer;
 
 import java.io.*;
 import java.nio.file.*;
+import java.sql.Timestamp;
 import java.util.*;
 import java.nio.file.attribute.*;
 
-import storage.client.core.action.Action;
-import storage.client.core.action.CreateAction;
-import storage.client.core.action.DeleteAction;
-import storage.client.core.action.ModifyAction;
-import storage.client.core.action.RenameAction;
+import com.ericsson.otp.erlang.*;
+
+import storage.client.core.action.*;
 import storage.client.core.executor.Executor;
 
 
@@ -142,6 +141,27 @@ public class JNotifyIndexer implements Indexer {
 	
 	public synchronized void update() throws IOException {
 		
+		// scanning remote
+		
+		final Map<Path, Long> remoteStatus = new HashMap<Path, Long>();
+		final Set<Action> syncQueue = new HashSet<Action>();
+		
+		ErlangNodeCall call = new ErlangNodeCall("storage_client", "scan", new OtpErlangObject[]{});
+		OtpErlangObject res = executor.execute(call);
+		OtpErlangTuple resp = (OtpErlangTuple)res;
+		
+		for(OtpErlangObject obj : (OtpErlangList)resp.elementAt(1)) {
+			OtpErlangTuple tup = (OtpErlangTuple)obj;
+			String vpath = ((OtpErlangString)tup.elementAt(0)).stringValue();
+			Long time = ((OtpErlangLong)tup.elementAt(1)).longValue();
+			
+			remoteStatus.put(Paths.get(vpath), time/1000);
+			
+			//System.out.println("file " + vpath + ", lastModified " + new Timestamp(time/1000));
+		}
+		
+		
+		
 		files.clear();
 		dirs.clear();
 		
@@ -149,7 +169,41 @@ public class JNotifyIndexer implements Indexer {
 			
 			@Override
 			public FileVisitResult visitFile(Path path, BasicFileAttributes attrs) {
-				files.add(root.relativize(path));
+				
+				Path relPath = root.relativize(path);
+				
+				Long remoteTime = remoteStatus.get(relPath);
+				
+				if(remoteTime != null) {
+
+					// current local file is stored in remote node
+					files.add(relPath);
+					remoteStatus.remove(relPath);
+					
+					Long localTime = path.toFile().lastModified();
+					
+					
+					System.out.println("processing " + relPath);
+					System.out.println("\t local iz: " + new Timestamp(localTime));
+					System.out.println("\tremote iz: " + new Timestamp(remoteTime));
+					
+					
+					if(remoteTime > localTime) { // TODO add some delta (~30s) ??
+						// remote is better, pull
+						System.out.println("pulling remote " + relPath);
+						syncQueue.add(new PullAction(relPath));
+						
+					} else {
+						// local is newer, keep and push to remote
+						System.out.println("pushing local " + relPath);
+						syncQueue.add(new ModifyAction(relPath));
+					}
+					
+				} else {
+					System.out.println("ignoring local-only " + relPath);
+					// ignore local-only files
+				}
+				
 				return FileVisitResult.CONTINUE;
 			}
 			
@@ -159,5 +213,25 @@ public class JNotifyIndexer implements Indexer {
 				return super.preVisitDirectory(path, attrs);
 			}
 		});
+		
+		// there are only new files in remoteStatus left
+		// pull all and ensure dirs
+		
+		for(Path path : remoteStatus.keySet()) {
+			
+			System.out.println("remote-only pull " + path);
+			syncQueue.add(new PullAction(path));
+			System.out.println("name count iz " + path.getNameCount());
+			
+			// add dirs
+			for(int i=1; i<path.getNameCount(); ++i) {
+				System.out.println("adding subpath " + path.subpath(0, i));
+				dirs.add(path.subpath(0, i));
+			}
+		}
+		
+		for(Action action : syncQueue) {
+			executor.execute(action);
+		}
 	}
 }

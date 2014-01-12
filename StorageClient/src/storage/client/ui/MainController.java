@@ -50,13 +50,7 @@ public class MainController implements Initializable {
 	
 	@FXML private ListView<String> lvLog;
 	@FXML private TextArea tarLog;
-	
-	//FileSystemWatcher watcher = null;
-	//JNotifyWatcher watcher = null;
-	//CommonsWatcher watcher = null;
-	
-	//Storage storage = null;
-	
+
 	LocalFileSystem fs = null;
 	
 	public MainController()
@@ -122,6 +116,8 @@ public class MainController implements Initializable {
 	@FXML
 	private void handleSync(ActionEvent event)
 	{
+		fs.sync();
+		
 		log("User files:");
 		logSep();
 	}

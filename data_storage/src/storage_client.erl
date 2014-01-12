@@ -13,9 +13,10 @@
 		 stop/0,
 		 create/1,
 		 delete/1,
-		 %%read/1,
+		 pull/1,
 		 write/1,
-		 rename/2
+		 rename/2,
+		 scan/0
 		 %%grab_ids/2
 		]).
 
@@ -88,13 +89,35 @@ rename(VPathFrom, VPathTo) ->
 							v_path	= VPathFrom,
 							options	= #write_opts{ v_path = VPathTo }
 						}).
+
+pull(VPath) ->
+	io:format("got pull request ~s!~n", [VPath]),
+	{ ok, RawData } = send_request(#request{	action	= read,
+												user_id	= user(),
+												v_path	= VPath
+										   }),
+	io:format("pulled ~w bytes!~n", [byte_size(RawData)]),
+	RealPath = resolve(VPath),
+	io:format("path resolved to ~s~n", [RealPath]),
+	filelib:ensure_dir(RealPath),
+	io:format("dir ensured!~n"),
+	file:write_file(RealPath, RawData),
+	io:format("writing done!~n"),
+	{ok, pulled }.
 	
+
+scan() ->
+	io:format("scan requested!~n"),
+	send_request(#request{ action	= list,
+						   user_id	= user(),
+						   broadcast = true
+						 }).
 
 
 send_request(#request{} = Req) ->
 	{ ?STORAGE_PROC, gateway() } ! { self(), Req },
 	receive
-		{ ok, Result } -> Result;
+		{ ok, Result } -> { ok, Result };
 		{ error, Err } -> { error, Err }
 	after 50000 ->
 			io:format("TIMED OUT ON: ~s~n", [Req#request.v_path]),

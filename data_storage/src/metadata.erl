@@ -20,7 +20,7 @@
 		]).
 
 init(FileMetaLocation) ->
-	ets:new(memDb, [named_table, { keypos, #file.local_id }]),
+	ets:new(memDb, [named_table, public, { keypos, #file.local_id }]),
 	dets:open_file(perDb, [
 						   	{ file, FileMetaLocation },
 						  	{ keypos, #file.local_id }

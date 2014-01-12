@@ -6,7 +6,7 @@
 -include("shared.hrl").
 -define(WORK_DIR, "P:\\local_ds_meta\\").
 -define(NODE_DIR, ?WORK_DIR ++ atom_to_list(node()) ++ "\\").
-
+-define(EXEC_PROC, executor_proc).
 %% ====================================================================
 %% API functions
 %% ====================================================================
@@ -36,6 +36,8 @@ init() ->
 
 	globals:set(fill, Fill),
 	
+	register(?EXEC_PROC, spawn_link(fun executor/0)),
+	
 	io:format("node ~s, fill ~w/~w with ~w files~n",
 			  [node(), globals:get(fill), globals:get(capacity), length(Files)]),
 
@@ -49,10 +51,6 @@ deinit() ->
 %%
 %% TODO consider merging create into write
 %%
-
-%%
-%% TODO handle broadcasts in another thread
-%% 
 
 
 loop() ->
@@ -70,9 +68,10 @@ loop() ->
 			io:format("got create request! needs ~w bytes~n", [ReqCap]),
 			
 			case { ForceLoc, ReqCap =< (globals:get(capacity)-globals:get(fill)) } of
-				{ true, true } ->
+				{ true, _ } -> %% TODO fix create chain: if it's forced, space has been reserved
 					%% place here
-					Pid ! process_request(Req);
+					%Pid ! process_request(Req);
+					?EXEC_PROC ! { Pid, Req };
 				{ _, _ } ->
 					%% find best location
 					NewOpt = Req#request.options#create_opts{force_loc=true},
@@ -81,6 +80,10 @@ loop() ->
 						{ undefined, _ } -> io:format("system full! request lost!~n");
 						{ Node, _ } -> 
 							io:format("dispatching to: ~s~n", [Node]),
+							{ ?SYSTEM_PROC, Node} ! { self(), reserve_storage, ReqCap },
+							receive
+								{ ok, reserved } -> ok
+							end,
 							{ ?STORAGE_PROC, Node} ! { Pid, NewReq }
 					end
 			end,
@@ -115,7 +118,8 @@ loop() ->
 					ok;
 				{ { ok, _ }, _ } -> 
 					io:format("REQUEST: found, , ~s~n", [VPath]),
-					Pid ! process_request(Req) 
+					%Pid ! process_request(Req) 
+					?EXEC_PROC ! { Pid, Req }
 			end,
 			loop();
 		
@@ -124,6 +128,17 @@ loop() ->
 			loop()
 	end,
 	deinit().
+
+
+
+
+%% @def Executor that handles and processes local requests
+executor() ->
+	receive
+		{ Pid, #request{} = Req } ->
+			Pid ! process_request(Req)
+	end,
+	executor().
 
 
 %%
@@ -145,7 +160,8 @@ process_request(#request{action		= create,
 				 v_path			= VPath},
 	
 	{ ok, #file{local_id=NewId} } = metadata:create(File),
-	globals:set(fill, globals:get(fill)+byte_size(Data)),
+	%% storage reserved on dispatching
+	%% globals:set(fill, globals:get(fill)+byte_size(Data)),
 	
 	file:write_file(?NODE_DIR++NewId, Data),
 	

@@ -126,6 +126,13 @@ loop() ->
 			end,
 			loop();
 		
+		{ Pid, reserve_storage, RequiredCap } ->
+			io:format("reserving on system!~n"),
+			globals:set(fill, globals:get(fill)+RequiredCap),
+			io:format("reserved, responding...~n"),
+			Pid ! { ok, reserved },
+			loop();
+		
 		_Other ->
 			io:format("system got: ~w~n", [_Other]),
 			loop()

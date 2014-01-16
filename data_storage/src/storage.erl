@@ -38,13 +38,13 @@ init() ->
 	
 	register(?EXEC_PROC, spawn_link(fun executor/0)),
 	
-	io:format("node ~s, fill ~w/~w with ~w files~n",
-			  [node(), globals:get(fill), globals:get(capacity), length(Files)]),
+	io:format("~w: node ~s, fill ~w/~w with ~w files~n",
+			  [erlang:localtime(), node(), globals:get(fill), globals:get(capacity), length(Files)]),
 
 	loop().
 
 deinit() ->
-	io:format("bye. luv ja.~n"),
+	io:format("~w: bye. luv ja.~n", [erlang:localtime()]),
 	metadata:deinit().
 
 
@@ -65,7 +65,7 @@ loop() ->
 			
 			ReqCap = byte_size(Data),
 			
-			io:format("got create request! needs ~w bytes~n", [ReqCap]),
+			io:format("~w: got create request! needs ~w bytes~n", [erlang:localtime(), ReqCap]),
 			
 			case { ForceLoc, ReqCap =< (globals:get(capacity)-globals:get(fill)) } of
 				{ true, _ } -> %% TODO fix create chain: if it's forced, space has been reserved
@@ -77,9 +77,9 @@ loop() ->
 					NewOpt = Req#request.options#create_opts{force_loc=true},
 					NewReq = Req#request{options=NewOpt},
 					case system:pref_storage(ReqCap) of
-						{ undefined, _ } -> io:format("system full! request lost!~n");
+						{ undefined, _ } -> io:format("~w: system full! request lost!~n", [erlang:localtime()]);
 						{ Node, _ } -> 
-							io:format("dispatching to: ~s~n", [Node]),
+							io:format("~w: dispatching to: ~s~n", [erlang:localtime(), Node]),
 							{ ?SYSTEM_PROC, Node} ! { self(), reserve_storage, ReqCap },
 							receive
 								{ ok, reserved } -> ok
@@ -111,20 +111,20 @@ loop() ->
 						v_path		= VPath } = Req } ->
 			case { metadata:get(UserId, VPath), Brdc } of
 				{ { error, not_found }, true } ->
-					io:format("REQUEST: broadcast & not found, ~s~n", [VPath]),
+					io:format("~w: REQUEST: broadcast & not found, ~s~n", [erlang:localtime(), VPath]),
 					system:broadcast(?STORAGE_PROC, { Pid, Req#request{broadcast=false} });
 				{ { error, _Err }, _ } ->
-					io:format("REQUEST: error, do not broadcast, ~s~n", [VPath]),
+					io:format("~w: REQUEST: error, do not broadcast, ~s~n", [erlang:localtime(), VPath]),
 					ok;
 				{ { ok, _ }, _ } -> 
-					io:format("REQUEST: found, , ~s~n", [VPath]),
+					io:format("~w: REQUEST: found, , ~s~n", [erlang:localtime(), VPath]),
 					%Pid ! process_request(Req) 
 					?EXEC_PROC ! { Pid, Req }
 			end,
 			loop();
 		
 		_Other ->
-			io:format("storage got: ~w~n", [_Other]),
+			io:format("~w: storage got: ~w~n", [erlang:localtime(), _Other]),
 			loop()
 	end,
 	deinit().
@@ -151,8 +151,8 @@ process_request(#request{action		= create,
 						 v_path		= VPath,
 						 options	= #create_opts{ data = Data }
 						}) ->
-	io:format("processing create ...~n"),
-	io:format("new file iz ~s~n", [VPath]),
+	io:format("~w: processing create ...~n", [erlang:localtime()]),
+	io:format("~w: new file iz ~s~n", [erlang:localtime(), VPath]),
 	
 	File = #file{owner_id		= UserId,
 				 last_access	= util:timestamp(),
@@ -173,8 +173,8 @@ process_request(#request{action		= delete,
 						 user_id	= UserId,
 						 v_path		= VPath
 						}) ->
-	io:format("processing delete ...~n"),
-	io:format("id iz ~s~n", [VPath]),
+	io:format("~w: processing delete ...~n",[erlang:localtime()]),
+	io:format("~w: id iz ~s~n", [erlang:localtime(), VPath]),
 
 	{ ok, File } = metadata:get(UserId, VPath),
 	globals:set(fill, globals:get(fill)-File#file.size),
@@ -190,13 +190,13 @@ process_request(#request{action		= read,
 						 user_id	= UserId,
 						 v_path		= VPath
 						}) ->
-	io:format("processing read ...~n"),
+	io:format("~w: processing read ...~n", [erlang:localtime()]),
 	{ ok, File } = metadata:get(UserId, VPath),
-	io:format("got file ~s~n", [File#file.v_path]),
+	io:format("~w: got file ~s~n", [erlang:localtime(), File#file.v_path]),
 	metadata:modify(File#file{last_access=util:timestamp()}),
-	io:format("meta modified!~n"),
+	io:format("~w: meta modified!~n", [erlang:localtime()]),
 	{ ok, Data } = file:read_file(?NODE_DIR++File#file.local_id),
-	io:format("got ~w bytes!~n", [byte_size(Data)]),
+	io:format("~w: got ~w bytes!~n", [erlang:localtime(), byte_size(Data)]),
 	{ok, Data };
 
 
@@ -207,18 +207,18 @@ process_request(#request{action		= write,
 						 options	= #write_opts{data = Data,
 												  v_path = VPath2 }
 						}) ->
-	io:format("processing write ~s ...~n", [VPath]),
+	io:format("~w: processing write ~s ...~n", [erlang:localtime(), VPath]),
 	
 	
 	{ ok, File } = metadata:get(UserId, VPath),
-	io:format("retrieved as: ~s~n", [File#file.local_id]),
+	io:format("~w: retrieved as: ~s~n", [erlang:localtime(), File#file.local_id]),
 	%%timer:sleep(1000),
 	
 	NewVPath = case VPath2 of
 				   false -> File#file.v_path;
 				   _ -> VPath2
 			   end,
-	io:format("path set to: ~s~n", [NewVPath]),
+	io:format("~w: path set to: ~s~n", [erlang:localtime(), NewVPath]),
 	
 	NewSize = case Data of
 				  false -> File#file.size;
@@ -226,7 +226,7 @@ process_request(#request{action		= write,
 						globals:set(fill, globals:get(fill)+byte_size(Data)), 
 						byte_size(Data)
 			   end,
-	io:format("size set to: ~w~n", [NewSize]),
+	io:format("~w: size set to: ~w~n", [erlang:localtime(), NewSize]),
 	
 	NewFile = File#file{last_access		= util:timestamp(),
 						size			= NewSize,
@@ -235,18 +235,18 @@ process_request(#request{action		= write,
 	metadata:modify(NewFile),
 	
 	case Data of
-		false -> io:format("data not changed~n"), ok;
-		_ -> io:format("writing data~n"),
+		false -> io:format("~w: data not changed~n", [erlang:localtime()]), ok;
+		_ -> io:format("~w: writing data~n", [erlang:localtime()]),
 			 file:write_file(?NODE_DIR++NewFile#file.local_id, Data)
 	end,
-	io:format("writing done!!!!!!!!!!!!!!~n"),
+	io:format("~w: writing done!!!!!!!!!!!!!!~n", [erlang:localtime()]),
 	{ ok, changes_written };
 
 
 
 process_request(#request{action		= move
 						}) ->
-	io:format("processing move ...~n"),
+	io:format("~w: processing move ...~n", [erlang:localtime()]),
 	{error, not_supported }.
 
 

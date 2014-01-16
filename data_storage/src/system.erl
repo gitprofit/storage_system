@@ -37,18 +37,25 @@ broadcast(Proc, Msg) ->
 
 %% @doc Returns most preferred node capable of storing RequiredCap bytes
 pref_storage(RequiredCap) ->
+	%% send
+	lists:foldl(fun({Node}, _Acc) ->
+						{ ?SYSTEM_PROC, Node } ! { self(), request_storage, RequiredCap }
+				end,
+				[], [{node()} | ets:tab2list(?NODE_TAB)]),
+	%% receive
 	lists:foldl(fun({Node}, {_PrefNode, PrefFill} = Acc) ->
-					  { ?SYSTEM_PROC, Node } ! { self(), request_storage, RequiredCap },
-					  receive
-						  { ok, PercentFill } ->
-							  case PercentFill < PrefFill of
-								  true -> { Node, PercentFill };
-								  _ -> Acc
-							  end;
-						  { error, _ } -> Acc
-					  after ?TIMEOUT -> Acc
-					  end
-			  end, { undefined, undefined }, [{node()} | ets:tab2list(?NODE_TAB)]).
+						receive
+							{ ok, PercentFill } ->
+								case PercentFill < PrefFill of
+									true -> { Node, PercentFill };
+									_ -> Acc
+								end;
+							{ error, _ } -> Acc
+						after ?TIMEOUT -> Acc
+						end
+				end,
+				{ undefined, undefined }, [{node()} | ets:tab2list(?NODE_TAB)]).
+
 
 %% @doc Grabs user files from each remote node
 scan(#request{action=list, broadcast=false} = Req) ->
@@ -67,7 +74,7 @@ scan(#request{action=list, broadcast=false} = Req) ->
 
 init(InitialNodes) ->
 	
-	globals:set(capacity, 100*1024*1024), %% 100 MB storage
+	globals:set(capacity, 200*1024*1024), %% 200 MB storage
 	
 	ets:new(?NODE_TAB, [named_table]),
 	ets:insert(?NODE_TAB, [{Node} || Node <- InitialNodes] ),
@@ -106,7 +113,7 @@ say_hello() ->
 loop() ->
 	receive
 		{ _Pid, stop } ->
-			io:format("all systems offlie.~n"),
+			io:format("~w: all systems offlie.~n", [erlang:localtime()]),
 			deinit();
 		
 		{ Pid, hello } ->
@@ -115,7 +122,7 @@ loop() ->
 		
 		{ Pid, request_nodes } ->
 			ets:insert(?NODE_TAB, {node(Pid)}),
-			io:format("nodes list served.~n"),
+			io:format("~w: nodes list served.~n", [erlang:localtime()]),
 			Pid ! { ok, ets:tab2list(?NODE_TAB) },
 			loop();
 		
@@ -127,13 +134,13 @@ loop() ->
 			loop();
 		
 		{ Pid, reserve_storage, RequiredCap } ->
-			io:format("reserving on system!~n"),
+			io:format("~w: reserving on system!~n", [erlang:localtime()]),
 			globals:set(fill, globals:get(fill)+RequiredCap),
-			io:format("reserved, responding...~n"),
+			io:format("~w: reserved, responding...~n", [erlang:localtime()]),
 			Pid ! { ok, reserved },
 			loop();
 		
 		_Other ->
-			io:format("system got: ~w~n", [_Other]),
+			io:format("~w: system got: ~w~n", [erlang:localtime(), _Other]),
 			loop()
 	end.

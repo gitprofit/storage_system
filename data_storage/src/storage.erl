@@ -7,6 +7,7 @@
 -define(WORK_DIR, "P:\\local_ds_meta\\").
 -define(NODE_DIR, ?WORK_DIR ++ atom_to_list(node()) ++ "\\").
 -define(EXEC_PROC, executor_proc).
+-define(EXECUTORS, proc_executors).
 %% ====================================================================
 %% API functions
 %% ====================================================================
@@ -37,6 +38,7 @@ init() ->
 	globals:set(fill, Fill),
 	
 	register(?EXEC_PROC, spawn_link(fun executor/0)),
+	ets:new(?EXECUTORS, [named_table, public, {heir, whereis(init), nothing} ]),
 	
 	io:format("~w: node ~s, fill ~w/~w with ~w files~n",
 			  [erlang:localtime(), node(), globals:get(fill), globals:get(capacity), length(Files)]),
@@ -45,6 +47,7 @@ init() ->
 
 deinit() ->
 	io:format("~w: bye. luv ja.~n", [erlang:localtime()]),
+	ets:delete(?EXECUTORS),
 	metadata:deinit().
 
 
@@ -71,7 +74,8 @@ loop() ->
 				{ true, _ } -> %% TODO fix create chain: if it's forced, space has been reserved
 					%% place here
 					%Pid ! process_request(Req);
-					?EXEC_PROC ! { Pid, Req };
+					%?EXEC_PROC ! { Pid, Req };
+					push_request(Pid, Req);
 				{ _, _ } ->
 					%% find best location
 					NewOpt = Req#request.options#create_opts{force_loc=true},
@@ -114,12 +118,13 @@ loop() ->
 					io:format("~w: REQUEST: broadcast & not found, ~s~n", [erlang:localtime(), VPath]),
 					system:broadcast(?STORAGE_PROC, { Pid, Req#request{broadcast=false} });
 				{ { error, _Err }, _ } ->
-					io:format("~w: REQUEST: error, do not broadcast, ~s~n", [erlang:localtime(), VPath]),
+					io:format("~w: REQUEST: no broadcast & not found, ~s~n", [erlang:localtime(), VPath]),
 					ok;
 				{ { ok, _ }, _ } -> 
 					io:format("~w: REQUEST: found, , ~s~n", [erlang:localtime(), VPath]),
 					%Pid ! process_request(Req) 
-					?EXEC_PROC ! { Pid, Req }
+					%?EXEC_PROC ! { Pid, Req }
+					push_request(Pid, Req)
 			end,
 			loop();
 		
@@ -132,13 +137,35 @@ loop() ->
 
 
 
-%% @def Executor that handles and processes local requests
+
+
+
+
+
+%% @def Executor that handles and processes local requests, thread method (every file has one)
 executor() ->
 	receive
 		{ Pid, #request{} = Req } ->
 			Pid ! process_request(Req)
 	end,
 	executor().
+
+%% @def pushes request to associated executor and returns immediately
+push_request(Pid, #request{user_id = UserId, v_path = VPath} = Req) ->
+	get_executor(UserId++VPath) ! { Pid, Req },
+	{ ok, request_pushed }.
+
+%% @def retrieves (or creates) handler for given file
+get_executor(Name) ->
+	case ets:lookup(?EXECUTORS, Name) of
+		[{Name, ExecutorPid}] -> ExecutorPid;
+		[] -> ets:insert(?EXECUTORS, { Name, spawn(fun executor/0) }),
+			  get_executor(Name);
+		_ -> { error, handler_not_found }
+	end.
+
+
+
 
 
 %%
@@ -164,6 +191,8 @@ process_request(#request{action		= create,
 	%% globals:set(fill, globals:get(fill)+byte_size(Data)),
 	
 	file:write_file(?NODE_DIR++NewId, Data),
+	
+	io:format("~w: creating done ...~n", [erlang:localtime()]),
 	
 	{ ok, created };
 
@@ -235,7 +264,7 @@ process_request(#request{action		= write,
 	metadata:modify(NewFile),
 	
 	case Data of
-		false -> io:format("~w: data not changed~n", [erlang:localtime()]), ok;
+		false -> ok;%%io:format("~w: data not changed~n", [erlang:localtime()]), ok;
 		_ -> io:format("~w: writing data~n", [erlang:localtime()]),
 			 file:write_file(?NODE_DIR++NewFile#file.local_id, Data)
 	end,

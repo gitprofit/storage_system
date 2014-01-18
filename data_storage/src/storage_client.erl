@@ -190,6 +190,10 @@ rename2(VPathFrom, VPathTo) ->
 							options	= #write_opts{ v_path = VPathTo }
 						}).
 
+
+%%
+%% @TODO handle in separate thread
+%%
 pull2(VPath) ->
 	io:format("got pull request ~s!~n", [VPath]),
 	{ ok, RawData } = await_request(#request{	action	= read,

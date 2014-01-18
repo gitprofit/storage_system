@@ -74,7 +74,7 @@ scan(#request{action=list, broadcast=false} = Req) ->
 
 init(InitialNodes) ->
 	
-	globals:set(capacity, 200*1024*1024), %% 200 MB storage
+	globals:set(capacity, 300*1024*1024), %% 300 MB storage
 	
 	ets:new(?NODE_TAB, [named_table]),
 	ets:insert(?NODE_TAB, [{Node} || Node <- InitialNodes] ),
